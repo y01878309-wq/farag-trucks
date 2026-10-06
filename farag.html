@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تريلات فرج - Farag Trucks</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0b0b0b;
+            color: white;
+            font-family: 'Tahoma', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            text-align: center;
+            background: #1a1a1a;
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(255, 136, 0, 0.4);
+        }
+
+        /* الخريطة المصرية فوق على الشمال */
+        #egypt-map {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ff8800;
+            padding: 5px 10px;
+            font-size: 11px;
+            border-radius: 6px;
+            z-index: 10;
+        }
+
+        #dashboard-top {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            font-weight: bold;
+            background: #252525;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        canvas {
+            background: #333;
+            border: 2px solid #ff8800;
+            display: block;
+            margin: 0 auto;
+            border-radius: 4px;
+        }
+
+        #controls {
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 5px;
+        }
+
+        #controls button {
+            font-size: 14px;
+            padding: 10px 15px;
+            background: #ff8800;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #controls button:active {
+            background: #c26600;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- الخريطة المصرية فوق على الشمال -->
+        <div id="egypt-map">
+            📍 خريطة مصر: (الجيزة ➔ طنطا)
+        </div>
+        
+        <div id="dashboard-top">
+            <span>تريلات فرج 🚛 [ف ر ج 1]</span>
+            <span id="score">النقاط: 0</span>
+        </div>
+
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+        <!-- أزرار التحكم -->
+        <div id="controls">
+            <div id="steering-container">
+                <button id="leftBtn">◀ يمين</button>
+                <button id="rightBtn">يسار ▶</button>
+            </div>
+            <div id="pedals-container">
+                <button id="brakeBtn">فرامل</button>
+                <button id="accelBtn">بنزين</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let truckX = 175;
+        let truckY = 480;
+        let truckWidth = 45;
+        let truckHeight = 85;
+        let score = 0;
+
+        let obstacleX = Math.floor(Math.random() * 280) + 60;
+        let obstacleY = -100;
+        let obstacleSpeed = 4;
+
+        let movingLeft = false;
+        let movingRight = false;
+        let accelerating = false;
+
+        // ربط أزرار التحكم
+        document.getElementById("leftBtn").addEventListener("touchstart", () => movingLeft = true);
+        document.getElementById("leftBtn").addEventListener("touchend", () => movingLeft = false);
+        document.getElementById("rightBtn").addEventListener("touchstart", () => movingRight = true);
+        document.getElementById("rightBtn").addEventListener("touchend", () => movingRight = false);
+
+        document.getElementById("accelBtn").addEventListener("touchstart", () => accelerating = true);
+        document.getElementById("accelBtn").addEventListener("touchend", () => accelerating = false);
+        
+        // دعم الماوس والكمبيوتر للتجربة السريعة
+        document.getElementById("leftBtn").addEventListener("mousedown", () => movingLeft = true);
+        document.getElementById("leftBtn").addEventListener("mouseup", () => movingLeft = false);
+        document.getElementById("rightBtn").addEventListener("mousedown", () => movingRight = true);
+        document.getElementById("rightBtn").addEventListener("mouseup", () => movingRight = false);
+        document.getElementById("accelBtn").addEventListener("mousedown", () => accelerating = true);
+        document.getElementById("accelBtn").addEventListener("mouseup", () => accelerating = false);
+
+        function update() {
+            if (movingLeft && truckX > 55) truckX -= 5;
+            if (movingRight && truckX < canvas.width - truckWidth - 55) truckX += 5;
+
+            let currentSpeed = accelerating ? obstacleSpeed + 3 : obstacleSpeed;
+            obstacleY += currentSpeed;
+
+            if (obstacleY > canvas.height) {
+                obstacleY = -100;
+                obstacleX = Math.floor(Math.random() * 240) + 80;
+                score += 15;
+                document.getElementById("score").innerText = "النقاط: " + score;
+            }
+
+            // رصد الاصطدام
+            if (
+                truckX < obstacleX + 35 &&
+                truckX + truckWidth > obstacleX &&
+                truckY < obstacleY + 60 &&
+                truckY + truckHeight > obstacleY
+            ) {
+                alert("يا ستر! حصلت خبطة في طريق طنطا.. النتيجة النهائية: " + score);
+                score = 0;
+                obstacleY = -100;
+                document.getElementById("score").innerText = "النقاط: 0";
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // رسم الطريق الإسفلتي المصري
+            ctx.fillStyle = "#444";
+            ctx.fillRect(50, 0, 300, canvas.height);
+
+            // خطوط نص الطريق
+            ctx.strokeStyle = "#ffeb3b";
+            ctx.setLineDash([15, 15]);
+            ctx.beginPath();
+            ctx.moveTo(200, 0);
+            ctx.lineTo(200, canvas.height);
+            ctx.stroke();
+
+            // رسم تريلات فرج (الشاحنة Scania)
+            ctx.fillStyle = "#1e3d59"; 
+            ctx.fillRect(truckX, truckY, truckWidth, truckHeight);
+            
+            // زجاج الشاحنة الأمامي
+            ctx.fillStyle = "#111";
+            ctx.fillRect(truckX + 4, truckY + 8, truckWidth - 8, 18);
+
+            // رسم العربية أو العقبة في الطريق
+            ctx.fillStyle = "#ff5722";
+            ctx.fillRect(obstacleX, obstacleY, 35, 60);
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
